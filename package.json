@@ -1,0 +1,10 @@
+{
+  "name": "spda-web",
+  "private": true,
+  "description": "Shortcut so npm commands also work from the SPDA_web folder (they run inside frontend/)",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "postinstall": "npm --prefix frontend install"
+  }
+}
