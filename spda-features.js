@@ -36,7 +36,7 @@
   document.head.appendChild(style);
 
   // ===== Settings =====
-  var LOGIN_URL = 'login.html';   // <<< oyage login page eke link eka methana danna
+  var LOGIN_URL = 'applications/dashboard.html';   // Login button eka click kalaama yana page eka
 
   var LANG = {
     en: {

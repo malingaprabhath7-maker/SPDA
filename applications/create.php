@@ -7,6 +7,39 @@ header("Access-Control-Allow-Headers: Content-Type");
 
 require_once "../database.php";
 
+/* "ගාල්ල / Galle" vage names -> ["ගාල්ල / Galle", "ගාල්ල", "Galle"] */
+function nameCandidates($name) {
+    $list = [trim($name)];
+    foreach (explode("/", $name) as $part) {
+        $part = trim($part);
+        if ($part !== "" && !in_array($part, $list, true)) {
+            $list[] = $part;
+        }
+    }
+    return $list;
+}
+
+/* table ekaka name eken id eka hoyanawa (naththam null) */
+function findIdByName($pdo, $table, $idCol, $nameCol, $name) {
+    if ($name === "") {
+        return null;
+    }
+    $stmt = $pdo->prepare("
+        SELECT $idCol FROM $table
+        WHERE TRIM(LOWER($nameCol)) = TRIM(LOWER(:n))
+        ORDER BY $idCol ASC
+        LIMIT 1
+    ");
+    foreach (nameCandidates($name) as $candidate) {
+        $stmt->execute([":n" => $candidate]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($row) {
+            return (int)$row[$idCol];
+        }
+    }
+    return null;
+}
+
 /* =========================
    HANDLE OPTIONS REQUEST
    ========================= */
@@ -73,6 +106,9 @@ try {
 
     $remarks = trim($data["remarks"] ?? "");
 
+    $serviceCategory = trim($data["serviceCategory"] ?? "");
+    $natureOfBusiness = trim($data["natureOfBusiness"] ?? "");
+
 
     /* =========================
        VALIDATE REQUIRED FIELDS
@@ -113,27 +149,7 @@ try {
        FIND DISTRICT ID
        ========================= */
 
-    $districtId = null;
-
-    $stmt = $pdo->prepare("
-        SELECT district_id
-        FROM districts
-        WHERE TRIM(LOWER(district_name))
-              = TRIM(LOWER(:district_name))
-        ORDER BY district_id ASC
-        LIMIT 1
-    ");
-
-    $stmt->execute([
-        ":district_name" => $districtName
-    ]);
-
-    $district = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if ($district) {
-
-        $districtId = (int)$district["district_id"];
-    }
+    $districtId = findIdByName($pdo, "districts", "district_id", "district_name", $districtName);
 
 
     /* =========================
@@ -208,6 +224,13 @@ if ($dsdId === null) {
 }
 
     /* =========================
+       SERVICE DIVISION / BUSINESS NATURE (optional)
+       ========================= */
+
+    $serviceDivisionId = findIdByName($pdo, "service_divisions", "service_division_id", "service_division_name", $serviceCategory);
+    $businessNatureId = findIdByName($pdo, "business_natures", "business_nature_id", "business_nature_name", $natureOfBusiness);
+
+    /* =========================
        INSERT APPLICATION
        ========================= */
 
@@ -222,6 +245,8 @@ if ($dsdId === null) {
             dsd_id,
             gn_id,
             gn_division,
+            service_division_id,
+            business_nature_id,
             business_registration_date,
             application_date,
             status,
@@ -237,6 +262,8 @@ if ($dsdId === null) {
             :dsd_id,
             NULL,
             :gn_division,
+            :service_division_id,
+            :business_nature_id,
             :business_registration_date,
             CURRENT_TIMESTAMP,
             'Pending',
@@ -272,6 +299,12 @@ if ($dsdId === null) {
 
         ":gn_division" =>
             $gnDivision !== "" ? $gnDivision : null,
+
+        ":service_division_id" =>
+            $serviceDivisionId,
+
+        ":business_nature_id" =>
+            $businessNatureId,
 
         ":business_registration_date" =>
             $businessRegistrationDate,
