@@ -1,88 +1,48 @@
 <?php
+/* GET -> list of all applications for the dashboard */
 
-header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
-
-require_once "../database.php";
-
-if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {
-    http_response_code(204);
-    exit;
-}
+require_once __DIR__ . "/_common.php";
 
 if ($_SERVER["REQUEST_METHOD"] !== "GET") {
-    echo json_encode([
-        "success" => false,
-        "message" => "Only GET requests are allowed"
-    ]);
-    exit;
+    respond(405, ["success" => false, "message" => "Only GET requests are allowed"]);
 }
 
 try {
-
-    $sql = "
+    $stmt = $pdo->query("
         SELECT
             a.application_id,
             a.applicant_name,
             a.nic,
             a.contact_number,
+            a.whatsapp_number,
             a.email,
             a.address,
             a.district_id,
             d.district_name,
-
             a.dsd_id,
             dsd.dsd_name,
-
             a.gn_division,
-
             a.business_nature_id,
             bn.business_nature_name,
-
             a.service_division_id,
             sd.service_division_name,
-
+            a.business_name,
+            a.registration_number,
+            a.number_of_employees,
             a.service_provision_id,
             a.business_registration_date,
             a.application_date,
             a.status,
             a.remarks
-
         FROM applications a
-
-        LEFT JOIN districts d
-            ON a.district_id = d.district_id
-
-        LEFT JOIN divisional_secretary_divisions dsd
-            ON a.dsd_id = dsd.dsd_id
-
-        LEFT JOIN business_natures bn
-            ON a.business_nature_id = bn.business_nature_id
-
-        LEFT JOIN service_divisions sd
-            ON a.service_division_id = sd.service_division_id
-
+        LEFT JOIN districts d ON a.district_id = d.district_id
+        LEFT JOIN divisional_secretary_divisions dsd ON a.dsd_id = dsd.dsd_id
+        LEFT JOIN business_natures bn ON a.business_nature_id = bn.business_nature_id
+        LEFT JOIN service_divisions sd ON a.service_division_id = sd.service_division_id
         ORDER BY a.application_id DESC
-    ";
+    ");
 
-    $stmt = $pdo->query($sql);
-
-    $applications = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    echo json_encode([
-        "success" => true,
-        "data" => $applications
-    ], JSON_UNESCAPED_UNICODE);
-
+    respond(200, ["success" => true, "data" => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
 } catch (PDOException $e) {
-
-    http_response_code(500);
-
-    echo json_encode([
-        "success" => false,
-        "message" => "Failed to fetch applications",
-        "error" => $e->getMessage()
-    ], JSON_UNESCAPED_UNICODE);
+    respond(500, ["success" => false, "message" => "Failed to fetch applications", "error" => $e->getMessage()]);
 }

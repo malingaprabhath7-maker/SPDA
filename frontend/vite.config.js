@@ -15,9 +15,21 @@ function phpServer() {
   return {
     name: 'spda-php-server',
     configureServer() {
-      php = spawn('php', ['-S', `localhost:${PHP_PORT}`, '-t', PROJECT_DIR], { cwd: PROJECT_DIR, stdio: 'ignore' })
-      php.on('spawn', () => console.log(`  PHP API running on http://localhost:${PHP_PORT}`))
+      php = spawn('php', ['-S', `localhost:${PHP_PORT}`, '-t', PROJECT_DIR], { cwd: PROJECT_DIR, stdio: ['ignore', 'ignore', 'pipe'] })
+      let phpErrors = ''
+      php.stderr.on('data', chunk => { phpErrors += chunk })
+      php.on('spawn', () => console.log(`  PHP API starting on http://localhost:${PHP_PORT}`))
       php.on('error', () => console.warn('  PHP not found: install PHP (or XAMPP) so login and database features work.'))
+      php.on('exit', code => {
+        if (code === null || code === 0) return
+        console.warn(`\n  PHP server stopped (code ${code}).`)
+        if (/Failed to listen|in use/i.test(phpErrors)) {
+          console.warn(`  Port ${PHP_PORT} is already used by an OLD PHP server (it may be using old settings).`)
+          console.warn('  Fix: run  taskkill /F /IM php.exe  in a terminal, then run npm run dev again.\n')
+        } else if (phpErrors.trim()) {
+          console.warn('  ' + phpErrors.trim().split('\n').slice(0, 3).join('\n  ') + '\n')
+        }
+      })
       const stop = () => { if (php && !php.killed) php.kill() }
       process.on('exit', stop)
       process.on('SIGINT', () => { stop(); process.exit() })
