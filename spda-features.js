@@ -36,7 +36,7 @@
   document.head.appendChild(style);
 
   // ===== Settings =====
-  var LOGIN_URL = 'http://localhost:5173/dashboard.html';   // React dashboard (frontend eke npm run dev run wenna oni)
+  var LOGIN_URL = 'http://localhost:5173/login.html';   // login page (frontend eke npm run dev run wenna oni)
 
   var LANG = {
     en: {

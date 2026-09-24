@@ -7,20 +7,25 @@ Southern Province Development Authority web project.
 ```
 SPDA_web/
 ├── database.php                 PostgreSQL connection (used by the PHP files)
+├── auth/                        Login API: register.php, login.php, me.php, logout.php
+├── database/auth_tables.sql     users + user_tokens tables (created automatically too)
 ├── applications/
 │   ├── check.php                API: GET  → list of applications (JSON)
 │   └── create.php               API: POST → save a new application
 └── frontend/                    ← the main website (Vite + React)
     ├── index.html               Welcome page (logo animation + Login button)
-    ├── dashboard.html           React dashboard page (loads src/main.jsx)
-    ├── public/spda-features.js  Language switch + Login button → /dashboard.html
-    └── src/App.jsx              React dashboard
+    ├── login.html               Login / Register page (src/auth/LoginPage.jsx)
+    ├── dashboard.html           React dashboard page (login required)
+    ├── public/spda-features.js  Language switch + Login button → /login.html
+    └── src/
+        ├── App.jsx              React dashboard (Back + Logout buttons in the header)
+        └── auth/                Login page, login check (AuthGate), session helpers
 ```
 
 `spda-welcome.html` and `spda-features.js` in the root folder are older copies
 of the welcome page. The live version is `frontend/index.html`.
 
-## Run the website
+## Run the website (one terminal)
 
 ```
 cd frontend
@@ -28,22 +33,23 @@ npm install        (first time only)
 npm run dev
 ```
 
+`npm run dev` starts **both** the React site and the PHP API
+(`php -S localhost:8000` from the SPDA_web folder). PHP must be installed.
+
 - Welcome page:   http://localhost:5173/
-- Login button →  http://localhost:5173/dashboard.html (React dashboard)
+- Login button →  http://localhost:5173/login.html (Login / Register)
+- After login  →  http://localhost:5173/dashboard.html (React dashboard)
 
-## PHP API (needed for real database data)
+The React code calls the PHP files through `/api/...`
+(for example `/api/auth/login.php`), which Vite forwards to `localhost:8000`.
 
-1. Start PostgreSQL. Check the details in `database.php`
-   (database `SPDA_Database`, user `postgres`).
-2. From the `SPDA_web` folder, run `php -S localhost:8000`
-   (or put the folder in `C:\xampp\htdocs\` and start Apache in XAMPP).
-3. Tell the React app where the API is. Create `frontend/.env.local`:
-   ```
-   VITE_API_URL=http://localhost:8000
-   ```
-   Then restart `npm run dev`.
+## Database
 
-Without the PHP API the dashboard still opens and shows sample data.
+PostgreSQL must be running. Check the details in `database.php`
+(database `SPDA_Database`, user `postgres`).
+
+The `users` and `user_tokens` tables are created automatically the first time
+someone registers or logs in (or run `database/auth_tables.sql` in pgAdmin).
 
 ## Build for hosting
 

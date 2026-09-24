@@ -5,11 +5,13 @@ import {
 import {
   LayoutDashboard, Database, Building2, MapPin, Briefcase, Users, PlusCircle, Search,
   FileDown, Printer, ChevronDown, ChevronRight, X, CheckCircle2, Layers, Sparkles, RefreshCw,
-  BarChart3, PieChart as PieChartIcon, Pencil, Trash2, WifiOff
+  BarChart3, PieChart as PieChartIcon, Pencil, Trash2, WifiOff, ArrowLeft, LogOut
 } from 'lucide-react';
+import { useAuth } from './auth/AuthGate.jsx';
+import { logout, HOME_PAGE } from './auth/session';
 
 // Backend base URL — set VITE_API_URL in your .env file, or change the fallback below
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost/spda-backend';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 const initialData = [
   {
@@ -222,6 +224,7 @@ const navyBtn = "flex items-center gap-2 bg-[#1E3A8A] hover:bg-[#172554] text-wh
 const cardCls = "bg-white border border-slate-200 hover:border-[#1E3A8A]/40 rounded-2xl p-5 shadow-sm transition";
 
 export default function App() {
+  const { user } = useAuth();
   const [data, setData] = useState(() => initialData.map(normalizeRecord));
   const [loading, setLoading] = useState(false);
   const [serverOnline, setServerOnline] = useState(false);
@@ -746,6 +749,13 @@ export default function App() {
           <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between sticky top-0 z-10">
 
             <div className="flex items-center gap-2 text-sm text-slate-500 font-medium">
+              <a
+                href={HOME_PAGE}
+                className="flex items-center gap-1.5 mr-2 px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-[#0B1D3A]"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Back</span>
+              </a>
               <span>SPDA Admin</span>
               <span>/</span>
               <span className="text-[#0B1D3A] font-semibold">
@@ -773,13 +783,22 @@ export default function App() {
               {/* User Profile Pill */}
               <div className="flex items-center gap-2.5 bg-slate-50 border border-slate-200 rounded-full px-3 py-1">
                 <div className="w-7 h-7 rounded-full bg-[#1E3A8A] flex items-center justify-center text-white text-xs font-bold">
-                  A
+                  {(user?.full_name || user?.username || 'A').charAt(0).toUpperCase()}
                 </div>
                 <div className="text-xs">
-                  <div className="font-semibold text-slate-800 leading-tight">Admin User</div>
-                  <div className="text-[10px] text-slate-500 leading-none">SPDA HQ Galle</div>
+                  <div className="font-semibold text-slate-800 leading-tight">{user?.full_name || 'Admin User'}</div>
+                  <div className="text-[10px] text-slate-500 leading-none">@{user?.username || 'admin'}</div>
                 </div>
               </div>
+
+              <button
+                onClick={logout}
+                title="Logout"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-red-50 hover:text-red-700 hover:border-red-200"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Logout</span>
+              </button>
             </div>
           </header>
 

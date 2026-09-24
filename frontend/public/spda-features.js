@@ -36,7 +36,7 @@
   document.head.appendChild(style);
 
   // ===== Settings =====
-  var LOGIN_URL = '/dashboard.html';   // Login -> React dashboard (frontend/dashboard.html)
+  var LOGIN_URL = '/login.html';   // Login -> login / register page (frontend/login.html)
 
   var LANG = {
     en: {
