@@ -147,10 +147,14 @@ function applicationValues($pdo, $data)
         }
     }
     if ($dsdId === null) {
-        respond(422, [
-            "success" => false,
-            "message" => "DS Division \"$dsdName\" was not found in district \"$districtName\""
-        ]);
+        /* New DS Division from the dashboard list: add it to this district */
+        $insert = $pdo->prepare("
+            INSERT INTO divisional_secretary_divisions (dsd_name, district_id)
+            VALUES (:n, :d)
+            RETURNING dsd_id
+        ");
+        $insert->execute([":n" => trim($dsdName), ":d" => $districtId]);
+        $dsdId = (int)$insert->fetchColumn();
     }
 
     $employees = $data["employees"] ?? null;
