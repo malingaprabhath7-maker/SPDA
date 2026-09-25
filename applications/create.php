@@ -13,12 +13,14 @@ try {
             applicant_name, nic, contact_number, whatsapp_number, email, address,
             district_id, dsd_id, gn_id, gn_division,
             service_division_id, business_nature_id,
+            service_category, sub_sector, nature_of_business, business_field,
             business_name, registration_number, number_of_employees,
             business_registration_date, application_date, status, remarks
         ) VALUES (
             :applicant_name, :nic, :contact_number, :whatsapp_number, :email, :address,
             :district_id, :dsd_id, NULL, :gn_division,
             :service_division_id, :business_nature_id,
+            :service_category, :sub_sector, :nature_of_business, :business_field,
             :business_name, :registration_number, :number_of_employees,
             :business_registration_date, CURRENT_TIMESTAMP, 'Pending', :remarks
         )

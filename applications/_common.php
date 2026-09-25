@@ -15,6 +15,34 @@ if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {
 
 require_once __DIR__ . "/../database.php";
 
+/* Adds the dashboard's extra columns to the applications table the first time (safe to run every time) */
+function ensureApplicationColumns($pdo)
+{
+    $pdo->exec("
+        ALTER TABLE applications
+            ADD COLUMN IF NOT EXISTS whatsapp_number     VARCHAR(20),
+            ADD COLUMN IF NOT EXISTS business_name       VARCHAR(200),
+            ADD COLUMN IF NOT EXISTS registration_number VARCHAR(100),
+            ADD COLUMN IF NOT EXISTS number_of_employees INTEGER,
+            ADD COLUMN IF NOT EXISTS service_category    VARCHAR(100),
+            ADD COLUMN IF NOT EXISTS sub_sector          VARCHAR(150),
+            ADD COLUMN IF NOT EXISTS nature_of_business  VARCHAR(150),
+            ADD COLUMN IF NOT EXISTS business_field      VARCHAR(150)
+    ");
+}
+
+try {
+    ensureApplicationColumns($pdo);
+} catch (PDOException $e) {
+    http_response_code(500);
+    echo json_encode([
+        "success" => false,
+        "message" => "Could not prepare the applications table",
+        "error"   => $e->getMessage()
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 /* Send a JSON reply and stop */
 function respond($status, $payload)
 {
@@ -49,7 +77,8 @@ function nameCandidates($name)
     return $list;
 }
 
-/* Finds a row id by its name in a lookup table (null if not found) */
+/* Finds a row id by its name in a lookup table (null if not found).
+   Also matches the English part of stored bilingual names like "<Sinhala> / Galle". */
 function findIdByName($pdo, $table, $idCol, $nameCol, $name)
 {
     if (trim((string)$name) === "") {
@@ -58,11 +87,12 @@ function findIdByName($pdo, $table, $idCol, $nameCol, $name)
     $stmt = $pdo->prepare("
         SELECT $idCol FROM $table
         WHERE TRIM(LOWER($nameCol)) = TRIM(LOWER(:n))
+           OR TRIM(LOWER(regexp_replace($nameCol, '^.*/', ''))) = TRIM(LOWER(:n2))
         ORDER BY $idCol ASC
         LIMIT 1
     ");
     foreach (nameCandidates($name) as $candidate) {
-        $stmt->execute([":n" => $candidate]);
+        $stmt->execute([":n" => $candidate, ":n2" => $candidate]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if ($row) {
             return (int)$row[$idCol];
@@ -140,6 +170,10 @@ function applicationValues($pdo, $data)
         ":gn_division"                => $text("gnDivision"),
         ":service_division_id"        => findIdByName($pdo, "service_divisions", "service_division_id", "service_division_name", $text("serviceCategory")),
         ":business_nature_id"         => findIdByName($pdo, "business_natures", "business_nature_id", "business_nature_name", $text("natureOfBusiness")),
+        ":service_category"           => $text("serviceCategory"),
+        ":sub_sector"                 => $text("subSector"),
+        ":nature_of_business"         => $text("natureOfBusiness"),
+        ":business_field"             => $text("businessField"),
         ":business_name"              => $text("businessName"),
         ":registration_number"        => $text("regNo"),
         ":number_of_employees"        => $employees,

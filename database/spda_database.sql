@@ -56,6 +56,10 @@ ALTER TABLE applications ADD COLUMN IF NOT EXISTS whatsapp_number     VARCHAR(20
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS business_name       VARCHAR(200);
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS registration_number VARCHAR(60);
 ALTER TABLE applications ADD COLUMN IF NOT EXISTS number_of_employees INT;
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS service_category    VARCHAR(100);
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS sub_sector          VARCHAR(150);
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS nature_of_business  VARCHAR(150);
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS business_field      VARCHAR(150);
 
 -- ---------- Login / register ----------
 
@@ -84,11 +88,19 @@ WHERE NOT EXISTS (SELECT 1 FROM districts d WHERE LOWER(d.district_name) = LOWER
 INSERT INTO divisional_secretary_divisions (dsd_name, district_id)
 SELECT v.dsd, d.district_id
 FROM (VALUES
-    ('Galle', 'Wadiramba'), ('Galle', 'Bope-Poddala'), ('Galle', 'Karandeniya'),
-    ('Galle', 'Yakkalamulla'), ('Galle', 'Ambalangoda'),
-    ('Matara', 'Weligama'), ('Matara', 'Matara Town'), ('Matara', 'Deniyaya'), ('Matara', 'Thalpawila'),
-    ('Hambantota', 'Ambalantota'), ('Hambantota', 'Tissamaharama'),
-    ('Hambantota', 'Tangalle'), ('Hambantota', 'Hambantota')
+    ('Galle', 'Akmeemana'), ('Galle', 'Ambalangoda'), ('Galle', 'Baddegama'), ('Galle', 'Balapitiya'),
+    ('Galle', 'Benthota'), ('Galle', 'Bope-Poddala'), ('Galle', 'Elpitiya'), ('Galle', 'Galle Four Gravets'),
+    ('Galle', 'Gonapinuwala'), ('Galle', 'Habaraduwa'), ('Galle', 'Hikkaduwa'), ('Galle', 'Imaduwa'),
+    ('Galle', 'Karandeniya'), ('Galle', 'Nagoda'), ('Galle', 'Neluwa'), ('Galle', 'Niyagama'),
+    ('Galle', 'Thawalama'), ('Galle', 'Welivitiya-Divithura'), ('Galle', 'Yakkalamulla'),
+    ('Matara', 'Akuressa'), ('Matara', 'Athuraliya'), ('Matara', 'Devinuwara'), ('Matara', 'Dickwella'),
+    ('Matara', 'Hakmana'), ('Matara', 'Kamburupitiya'), ('Matara', 'Kirinda Puhulwella'), ('Matara', 'Kotapola'),
+    ('Matara', 'Malimbada'), ('Matara', 'Matara'), ('Matara', 'Mulatiyana'), ('Matara', 'Pasgoda'),
+    ('Matara', 'Pitabeddara'), ('Matara', 'Thihagoda'), ('Matara', 'Weligama'), ('Matara', 'Welipitiya'),
+    ('Hambantota', 'Ambalantota'), ('Hambantota', 'Angunakolapelessa'), ('Hambantota', 'Beliatta'),
+    ('Hambantota', 'Hambantota'), ('Hambantota', 'Katuwana'), ('Hambantota', 'Lunugamwehera'),
+    ('Hambantota', 'Okewela'), ('Hambantota', 'Sooriyawewa'), ('Hambantota', 'Tangalle'),
+    ('Hambantota', 'Tissamaharama'), ('Hambantota', 'Walasmulla'), ('Hambantota', 'Weeraketiya')
 ) AS v(district, dsd)
 JOIN districts d ON LOWER(d.district_name) = LOWER(v.district)
 WHERE NOT EXISTS (
@@ -98,7 +110,7 @@ WHERE NOT EXISTS (
 
 INSERT INTO service_divisions (service_division_name)
 SELECT v.name FROM (VALUES
-    ('Export'), ('Self-employment'), ('Small-scale'), ('Certified Trainees')
+    ('Export'), ('Self-employment'), ('Micro'), ('Small-scale'), ('Large-scale'), ('Certified Trainees')
 ) AS v(name)
 WHERE NOT EXISTS (SELECT 1 FROM service_divisions s WHERE LOWER(s.service_division_name) = LOWER(v.name));
 

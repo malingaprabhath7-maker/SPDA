@@ -5,7 +5,7 @@ import {
 import {
   LayoutDashboard, Database, Building2, MapPin, Briefcase, Users, PlusCircle, Search,
   FileDown, Printer, ChevronDown, ChevronRight, X, CheckCircle2, Layers, Sparkles, RefreshCw,
-  BarChart3, PieChart as PieChartIcon, Pencil, Trash2, WifiOff, ArrowLeft, LogOut
+  BarChart3, PieChart as PieChartIcon, Pencil, Trash2, WifiOff, ArrowLeft, LogOut, Factory
 } from 'lucide-react';
 import { useAuth } from './auth/AuthGate.jsx';
 import { logout, HOME_PAGE } from './auth/session';
@@ -135,13 +135,36 @@ const initialData = [
   }
 ];
 
+// Must match divisional_secretary_divisions.dsd_name in the database
 const dsDivisionsByDistrict = {
-  "Galle": ["Wadiramba", "Bope-Poddala", "Karandeniya", "Yakkalamulla", "Ambalangoda"],
-  "Matara": ["Weligama", "Matara Town", "Deniyaya", "Thalpawila"],
-  "Hambantota": ["Ambalantota", "Tissamaharama", "Tangalle", "Hambantota"]
+  "Galle": [
+    "Akmeemana", "Ambalangoda", "Baddegama", "Balapitiya", "Benthota", "Bope-Poddala", "Elpitiya",
+    "Galle Four Gravets", "Gonapinuwala", "Habaraduwa", "Hikkaduwa", "Imaduwa", "Karandeniya",
+    "Nagoda", "Neluwa", "Niyagama", "Thawalama", "Welivitiya-Divithura", "Yakkalamulla"
+  ],
+  "Matara": [
+    "Akuressa", "Athuraliya", "Devinuwara", "Dickwella", "Hakmana", "Kamburupitiya",
+    "Kirinda Puhulwella", "Kotapola", "Malimbada", "Matara", "Mulatiyana", "Pasgoda",
+    "Pitabeddara", "Thihagoda", "Weligama", "Welipitiya"
+  ],
+  "Hambantota": [
+    "Ambalantota", "Angunakolapelessa", "Beliatta", "Hambantota", "Katuwana", "Lunugamwehera",
+    "Okewela", "Sooriyawewa", "Tangalle", "Tissamaharama", "Walasmulla", "Weeraketiya"
+  ]
 };
 
-const serviceCategories = ["Export", "Self-employment", "Small-scale", "Certified Trainees"];
+const serviceCategories = ["Export", "Self-employment", "Micro", "Small-scale", "Large-scale", "Certified Trainees"];
+
+const businessFields = [
+  "Manufacturing",
+  "Trading",
+  "Services",
+  "Agriculture & Livestock",
+  "Fisheries",
+  "Tourism & Hospitality",
+  "Construction",
+  "Other"
+];
 
 const natureOfBusinesses = [
   "Wood & Handicrafts",
@@ -173,7 +196,9 @@ const normalizeRecord = (r) => ({
   dsDivision: englishPart(r.dsDivision ?? r.dsd_name),
   gnDivision: r.gnDivision ?? r.gn_division ?? '',
   serviceCategory: englishPart(r.serviceCategory ?? r.service_division_name),
+  subSector: r.subSector ?? r.sub_sector ?? '',
   natureOfBusiness: englishPart(r.natureOfBusiness ?? r.business_nature_name),
+  businessField: r.businessField ?? r.business_field ?? '',
   businessName: r.businessName ?? r.business_name ?? '',
   regNo: r.regNo ?? r.registration_number ?? '',
   employees: r.employees ?? r.number_of_employees ?? ''
@@ -182,8 +207,8 @@ const normalizeRecord = (r) => ({
 const emptyForm = {
   name: '', address: '', nic: '', phone: '', whatsapp: '', email: '',
   district: 'Galle', dsDivision: 'Bope-Poddala', gnDivision: '',
-  serviceCategory: 'Self-employment', natureOfBusiness: 'Food & Beverages',
-  businessName: '', regNo: '', employees: 1
+  serviceCategory: 'Self-employment', subSector: '', natureOfBusiness: 'Food & Beverages',
+  businessField: 'Manufacturing', businessName: '', regNo: '', employees: 1
 };
 
 // Keeps a stored value selectable in a dropdown even if it is not in the predefined list
@@ -212,7 +237,9 @@ const printColumns = [
   ['DS Division', r => r.dsDivision],
   ['GN Division', r => r.gnDivision],
   ['Service Category', r => r.serviceCategory],
+  ['Sub Sector', r => r.subSector],
   ['Nature of Business', r => r.natureOfBusiness],
+  ['Business Field', r => r.businessField],
   ['Phone', r => r.phone],
   ['Employees', r => r.employees]
 ];
@@ -234,7 +261,9 @@ export default function App() {
   const [selectedDistrict, setSelectedDistrict] = useState('All');
   const [selectedDs, setSelectedDs] = useState('All');
   const [selectedService, setSelectedService] = useState('All');
+  const [selectedSubSector, setSelectedSubSector] = useState('All');
   const [selectedNature, setSelectedNature] = useState('All');
+  const [selectedField, setSelectedField] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Accordion Expand States
@@ -242,7 +271,8 @@ export default function App() {
     district: true,
     ds: false,
     service: false,
-    nature: false
+    nature: false,
+    field: false
   });
 
   // Modal State (editingId === null means "add new")
@@ -296,18 +326,31 @@ export default function App() {
       setActiveTab('ds');
     } else if (type === 'service') {
       setSelectedService(val);
+      setSelectedSubSector('All');
+      setActiveTab('service');
+    } else if (type === 'subSector') {
+      setSelectedSubSector(val);
       setActiveTab('service');
     } else if (type === 'nature') {
       setSelectedNature(val);
       setActiveTab('nature');
+    } else if (type === 'field') {
+      setSelectedField(val);
+      setActiveTab('field');
     }
   };
 
-  const resetAllFilters = () => {
+  const clearFilters = () => {
     setSelectedDistrict('All');
     setSelectedDs('All');
     setSelectedService('All');
+    setSelectedSubSector('All');
     setSelectedNature('All');
+    setSelectedField('All');
+  };
+
+  const resetAllFilters = () => {
+    clearFilters();
     setSearchQuery('');
     setActiveTab('dashboard');
     triggerToast('All filters have been reset.');
@@ -319,14 +362,27 @@ export default function App() {
       const matchDistrict = selectedDistrict === 'All' || item.district === selectedDistrict;
       const matchDs = selectedDs === 'All' || item.dsDivision === selectedDs;
       const matchService = selectedService === 'All' || item.serviceCategory === selectedService;
+      const matchSubSector = selectedSubSector === 'All' || item.subSector === selectedSubSector;
       const matchNature = selectedNature === 'All' || item.natureOfBusiness === selectedNature;
+      const matchField = selectedField === 'All' || item.businessField === selectedField;
       const matchSearch = q === '' ||
-        [item.name, item.businessName, item.nic, item.gnDivision, item.regNo]
+        [item.name, item.businessName, item.nic, item.gnDivision, item.regNo, item.subSector, item.businessField]
           .some(v => (v || '').toString().toLowerCase().includes(q));
 
-      return matchDistrict && matchDs && matchService && matchNature && matchSearch;
+      return matchDistrict && matchDs && matchService && matchSubSector && matchNature && matchField && matchSearch;
     });
-  }, [data, selectedDistrict, selectedDs, selectedService, selectedNature, searchQuery]);
+  }, [data, selectedDistrict, selectedDs, selectedService, selectedSubSector, selectedNature, selectedField, searchQuery]);
+
+  // Sub sectors typed in so far, grouped by service category: { Export: ['Spices', ...], ... }
+  const subSectorsByService = useMemo(() => {
+    const map = {};
+    data.forEach(r => {
+      if (!r.serviceCategory || !r.subSector) return;
+      map[r.serviceCategory] = map[r.serviceCategory] || new Set();
+      map[r.serviceCategory].add(r.subSector);
+    });
+    return Object.fromEntries(Object.entries(map).map(([k, set]) => [k, [...set].sort()]));
+  }, [data]);
 
   const districtChartData = useMemo(() => {
     const counts = {};
@@ -371,7 +427,8 @@ export default function App() {
     setEditingId(row.id);
     setFormData({
       ...emptyForm,
-      ...Object.fromEntries(Object.keys(emptyForm).map(k => [k, row[k] ?? emptyForm[k]])),
+      // empty values fall back to the defaults so every dropdown has a valid selection
+      ...Object.fromEntries(Object.keys(emptyForm).map(k => [k, row[k] || emptyForm[k]])),
       employees: row.employees || 1
     });
     setIsModalOpen(true);
@@ -585,7 +642,7 @@ export default function App() {
             <nav className="p-4 space-y-1 text-sm font-medium overflow-y-auto max-h-[calc(100vh-160px)]">
 
               <button
-                onClick={() => { setActiveTab('dashboard'); setSelectedDistrict('All'); setSelectedDs('All'); setSelectedService('All'); setSelectedNature('All'); }}
+                onClick={() => { setActiveTab('dashboard'); clearFilters(); }}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 ${
                   activeTab === 'dashboard'
                     ? 'bg-white text-[#0B1D3A] shadow-md'
@@ -688,11 +745,37 @@ export default function App() {
                     <button onClick={() => handleSelectFilter('service', 'All')} className={filterItemCls(selectedService === 'All')}>
                       All Services
                     </button>
-                    {serviceCategories.map(cat => (
-                      <button key={cat} onClick={() => handleSelectFilter('service', cat)} className={filterItemCls(selectedService === cat)}>
-                        {cat}
-                      </button>
-                    ))}
+                    {withCurrent(serviceCategories, selectedService === 'All' ? '' : selectedService).map(cat => {
+                      const subs = subSectorsByService[cat] || [];
+                      const expanded = selectedService === cat && subs.length > 0;
+                      return (
+                        <div key={cat}>
+                          <button
+                            onClick={() => handleSelectFilter('service', cat)}
+                            className={`${filterItemCls(selectedService === cat && selectedSubSector === 'All')} flex items-center justify-between`}
+                          >
+                            <span>{cat}</span>
+                            {subs.length > 0 && (
+                              expanded ? <ChevronDown className="w-3 h-3 opacity-70" /> : <ChevronRight className="w-3 h-3 opacity-70" />
+                            )}
+                          </button>
+                          {/* Sub sectors of this service category */}
+                          {expanded && (
+                            <div className="ml-3 mt-1 mb-1 pl-2 border-l border-white/15 space-y-1">
+                              {subs.map(sub => (
+                                <button
+                                  key={sub}
+                                  onClick={() => handleSelectFilter('subSector', sub)}
+                                  className={filterItemCls(selectedSubSector === sub)}
+                                >
+                                  {sub}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -717,6 +800,32 @@ export default function App() {
                     {natureOfBusinesses.map(nat => (
                       <button key={nat} onClick={() => handleSelectFilter('nature', nat)} className={filterItemCls(selectedNature === nat)}>
                         {nat}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Accordion 5: Business Field */}
+              <div className="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
+                <button
+                  onClick={() => toggleAccordion('field')}
+                  className="w-full flex items-center justify-between p-3 text-blue-50 hover:bg-white/10 transition"
+                >
+                  <div className="flex items-center gap-2.5 text-xs font-semibold">
+                    <Factory className="w-4 h-4 text-blue-300" />
+                    <span>Business Field</span>
+                  </div>
+                  {openAccordion.field ? <ChevronDown className="w-3.5 h-3.5 text-blue-200" /> : <ChevronRight className="w-3.5 h-3.5 text-blue-200" />}
+                </button>
+                {openAccordion.field && (
+                  <div className="p-2 space-y-1 border-t border-white/10 text-xs max-h-40 overflow-y-auto">
+                    <button onClick={() => handleSelectFilter('field', 'All')} className={filterItemCls(selectedField === 'All')}>
+                      All Business Fields
+                    </button>
+                    {businessFields.map(f => (
+                      <button key={f} onClick={() => handleSelectFilter('field', f)} className={filterItemCls(selectedField === f)}>
+                        {f}
                       </button>
                     ))}
                   </div>
@@ -763,8 +872,9 @@ export default function App() {
                 {activeTab === 'overview' && 'All Entrepreneur Records'}
                 {activeTab === 'district' && `District View (${selectedDistrict})`}
                 {activeTab === 'ds' && `DS Division View (${selectedDs})`}
-                {activeTab === 'service' && `Service Category View (${selectedService})`}
+                {activeTab === 'service' && `Service Category View (${selectedService}${selectedSubSector !== 'All' ? ` / ${selectedSubSector}` : ''})`}
                 {activeTab === 'nature' && `Nature of Business View (${selectedNature})`}
+                {activeTab === 'field' && `Business Field View (${selectedField})`}
               </span>
               {loading && <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#1E3A8A]" />}
               {!loading && !serverOnline && (
@@ -980,18 +1090,20 @@ export default function App() {
               </div>
 
               {/* Active Filter Chips */}
-              {(selectedDistrict !== 'All' || selectedDs !== 'All' || selectedService !== 'All' || selectedNature !== 'All') && (
+              {[selectedDistrict, selectedDs, selectedService, selectedSubSector, selectedNature, selectedField].some(v => v !== 'All') && (
                 <div className="flex items-center gap-2 pt-2 border-t border-slate-200 text-xs flex-wrap">
                   <span className="text-slate-500 font-semibold">Active filters:</span>
                   {[
-                    [selectedDistrict, setSelectedDistrict],
-                    [selectedDs, setSelectedDs],
-                    [selectedService, setSelectedService],
-                    [selectedNature, setSelectedNature]
-                  ].filter(([val]) => val !== 'All').map(([val, setter]) => (
-                    <span key={val} className="bg-blue-50 border border-blue-200 text-[#1E3A8A] font-medium px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                    ['district', selectedDistrict, () => { setSelectedDistrict('All'); setSelectedDs('All'); }],
+                    ['ds', selectedDs, () => setSelectedDs('All')],
+                    ['service', selectedService, () => { setSelectedService('All'); setSelectedSubSector('All'); }],
+                    ['subSector', selectedSubSector, () => setSelectedSubSector('All')],
+                    ['nature', selectedNature, () => setSelectedNature('All')],
+                    ['field', selectedField, () => setSelectedField('All')]
+                  ].filter(([, val]) => val !== 'All').map(([key, val, clear]) => (
+                    <span key={key} className="bg-blue-50 border border-blue-200 text-[#1E3A8A] font-medium px-2.5 py-1 rounded-lg flex items-center gap-1.5">
                       {val}
-                      <X className="w-3 h-3 cursor-pointer" onClick={() => setter('All')} />
+                      <X className="w-3 h-3 cursor-pointer" onClick={clear} />
                     </span>
                   ))}
                 </div>
@@ -1024,6 +1136,7 @@ export default function App() {
                       <th className="p-3.5 whitespace-nowrap">GN Division</th>
                       <th className="p-3.5 whitespace-nowrap">Service Category</th>
                       <th className="p-3.5 whitespace-nowrap">Nature of Business</th>
+                      <th className="p-3.5 whitespace-nowrap">Business Field</th>
                       <th className="p-3.5 whitespace-nowrap">Phone / WhatsApp</th>
                       <th className="p-3.5 whitespace-nowrap">Employees</th>
                       <th className="p-3.5 whitespace-nowrap text-center">Actions</th>
@@ -1061,8 +1174,10 @@ export default function App() {
                                 {row.serviceCategory}
                               </span>
                             ) : '-'}
+                            {row.subSector && <div className="text-[10px] text-slate-500 mt-1">Sub sector: {row.subSector}</div>}
                           </td>
                           <td className="p-3.5 whitespace-nowrap">{row.natureOfBusiness || '-'}</td>
+                          <td className="p-3.5 whitespace-nowrap">{row.businessField || '-'}</td>
                           <td className="p-3.5 whitespace-nowrap text-slate-600">
                             <div>{row.phone}</div>
                             {row.whatsapp && <div className="text-[10px] text-emerald-600">WA: {row.whatsapp}</div>}
@@ -1092,7 +1207,7 @@ export default function App() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="12" className="p-8 text-center text-slate-500">
+                        <td colSpan="13" className="p-8 text-center text-slate-500">
                           <p className="text-sm">No records found.</p>
                           <p className="text-xs mt-1">Please check your filters and try again.</p>
                         </td>
@@ -1224,11 +1339,11 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className={labelCls}>Service Category *</label>
                   <select value={formData.serviceCategory}
-                    onChange={(e) => setFormData({ ...formData, serviceCategory: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, serviceCategory: e.target.value, subSector: '' })}
                     className={inputCls}>
                     {withCurrent(serviceCategories, formData.serviceCategory).map(s => (
                       <option key={s} value={s}>{s}</option>
@@ -1236,12 +1351,37 @@ export default function App() {
                   </select>
                 </div>
                 <div>
+                  <label className={labelCls}>Sub Sector</label>
+                  <input type="text" list="sub-sector-options" value={formData.subSector}
+                    onChange={(e) => setFormData({ ...formData, subSector: e.target.value })}
+                    placeholder={`Type a sub sector of ${formData.serviceCategory}`} className={inputCls} />
+                  {/* suggests sub sectors already used for this service category */}
+                  <datalist id="sub-sector-options">
+                    {(subSectorsByService[formData.serviceCategory] || []).map(s => (
+                      <option key={s} value={s} />
+                    ))}
+                  </datalist>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
                   <label className={labelCls}>Nature of Business *</label>
                   <select value={formData.natureOfBusiness}
                     onChange={(e) => setFormData({ ...formData, natureOfBusiness: e.target.value })}
                     className={inputCls}>
                     {withCurrent(natureOfBusinesses, formData.natureOfBusiness).map(n => (
                       <option key={n} value={n}>{n}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>Business Field *</label>
+                  <select value={formData.businessField}
+                    onChange={(e) => setFormData({ ...formData, businessField: e.target.value })}
+                    className={inputCls}>
+                    {withCurrent(businessFields, formData.businessField).map(f => (
+                      <option key={f} value={f}>{f}</option>
                     ))}
                   </select>
                 </div>
