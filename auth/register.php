@@ -9,7 +9,10 @@ $fullName = trim($data["full_name"] ?? "");
 $username = strtolower(trim($data["username"] ?? ""));
 $password = (string)($data["password"] ?? "");
 
-if ($fullName === "" || mb_strlen($fullName) > 150) {
+/* counts letters (works for Sinhala too) without needing the mbstring extension */
+$nameLength = preg_match_all('/./us', $fullName);
+
+if ($fullName === "" || $nameLength === false || $nameLength > 150) {
     respond(422, ["success" => false, "message" => "Please enter your full name"]);
 }
 if (!preg_match('/^[a-z0-9_.]{3,30}$/', $username)) {
